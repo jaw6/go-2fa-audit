@@ -1,6 +1,7 @@
 package main
 
 import (
+  "flag"
   "fmt"
   "os"
   "github.com/octokit/go-octokit/octokit"
@@ -10,13 +11,30 @@ type Member struct {
   Login string `json:"login"`
 }
 
-func main() {
-  if len(os.Args[1:]) < 1 {
-    fmt.Println("Usage: given an org, print list of users *without* 2fa enabled")
-    return
+var accessToken string
+var orgName string
+
+func init() {
+  flag.StringVar(&accessToken, "token", "", "user access token")
+  flag.Parse()
+  orgName = flag.Arg(0)
+
+  if accessToken == "" {
+    accessToken = os.Getenv("GH_ACCESS_TOKEN")
   }
 
-  orgName := os.Args[1]
+  fmt.Println("access token: ", accessToken)
+  fmt.Println("org name: ", orgName)
+}
+
+func main() {
+  if orgName == "" {
+    fmt.Println("Usage: [-token <token>] <org>")
+    fmt.Println("       Print list of organization members *without* 2fa enabled.")
+    fmt.Println("       Looks for access token via -token or GH_ACCESS_TOKEN")
+    fmt.Println("       Access token must be for member of target org")
+    return
+  }
 
   memberURL := octokit.Hyperlink("/orgs/{org}/members{?filter}") // type,page,per_page,sort
   url, err := memberURL.Expand(octokit.M{"org": orgName, "filter": "2fa_disabled"})
@@ -26,7 +44,7 @@ func main() {
     return
   }
 
-  client := octokit.NewClient(nil)
+  client := octokit.NewClient(octokit.TokenAuth{AccessToken: accessToken})
   req, _ := client.NewRequest(url.String())
   var members []Member
   req.Get(&members)
