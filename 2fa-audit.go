@@ -27,6 +27,17 @@ func init() {
   fmt.Println("org name: ", orgName)
 }
 
+func makeURL(orgName string, page int) (urlString string, err error) {
+  memberURL := octokit.Hyperlink("/orgs/{org}/members{?filter,page}") // type,page,per_page,sort
+  url, err := memberURL.Expand(octokit.M{"org": orgName, "filter": "2fa_disabled", "page": page})
+
+  if err != nil {
+    return
+  }
+
+  return url.String(), err
+}
+
 func main() {
   if orgName == "" {
     fmt.Println("Usage: [-token <token>] <org>")
@@ -36,18 +47,20 @@ func main() {
     return
   }
 
-  memberURL := octokit.Hyperlink("/orgs/{org}/members{?filter}") // type,page,per_page,sort
-  url, err := memberURL.Expand(octokit.M{"org": orgName, "filter": "2fa_disabled"})
-
-  if err != nil {
-    fmt.Println("There was an error: ", err)
-    return
-  }
-
   client := octokit.NewClient(octokit.TokenAuth{AccessToken: accessToken})
-  req, _ := client.NewRequest(url.String())
   var members []Member
-  req.Get(&members)
+  var pageMembers []Member
+  page := 1
+
+  for {
+    url, err := makeURL(orgName, page)
+    if err != nil { fmt.Println("There was an error: ", err); return }
+    req, _ := client.NewRequest(url)
+    req.Get(&pageMembers)
+    if len(pageMembers) == 0 { break }
+    members = append(members, pageMembers...)
+    page += 1
+  }
 
   if len(members) == 0 { fmt.Println("No users have 2fa disabled.") }
   for i:=0; i<len(members); i++ {
