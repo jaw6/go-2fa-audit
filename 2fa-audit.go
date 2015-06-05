@@ -33,13 +33,7 @@ func main() {
   client := octokit.NewClient(nil)
   req, _ := client.NewRequest(url.String())
   var members []Member
-  // result := client.get(url, &members)
   req.Get(&members)
-
-  // if result.HasError() {
-  //   fmt.Println("Error: ", err)
-  //   return
-  // }
 
   if len(members) == 0 { fmt.Println("No users have 2fa disabled.") }
   for i:=0; i<len(members); i++ {
