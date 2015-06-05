@@ -17,18 +17,14 @@ func main() {
   }
 
   orgName := os.Args[1]
-  fmt.Printf("Org Name is: %v", orgName)
 
   memberURL := octokit.Hyperlink("/orgs/{org}/members{?filter}") // type,page,per_page,sort
   url, err := memberURL.Expand(octokit.M{"org": orgName, "filter": "2fa_disabled"})
-
-  fmt.Println("What is URL: " + url.String())
 
   if err != nil {
     fmt.Println("There was an error: ", err)
     return
   }
-  fmt.Printf("URL is: %v\n", url)
 
   client := octokit.NewClient(nil)
   req, _ := client.NewRequest(url.String())
